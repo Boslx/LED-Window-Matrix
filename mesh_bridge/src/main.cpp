@@ -55,19 +55,17 @@ uint32_t runif(uint32_t from, uint32_t to) {
 
 std::map<uint8_t, uint32_t> getChannelDestMapping(std::string filename) {
   std::ifstream inFile(filename, std::ios::in);
-  if (!inFile.is_open())
-  {
+  if (!inFile.is_open()) {
     std::cerr << "Can't open the file" << std::endl;
     throw "Not able to";
   }
   std::string lineStr;
   std::map<uint8_t, uint32_t> channelDestMapping;
-  while (getline(inFile,lineStr))
-  {
+  while (getline(inFile, lineStr)) {
     //  Split string
     int index = lineStr.find(",");
     uint8_t channel = std::stoul(lineStr.substr(0, index));
-    uint32_t destId = std::stoul(lineStr.substr(index+1, lineStr.size()-1));
+    uint32_t destId = std::stoul(lineStr.substr(index + 1, lineStr.size() - 1));
     //  Save to map
     channelDestMapping[channel] = destId;
   }
@@ -78,15 +76,17 @@ std::map<uint8_t, uint32_t> getChannelDestMapping(std::string filename) {
 int main(int ac, char* av[]) {
   using namespace painlessmesh;
   size_t port = 5555;
+  uint pixelRowGroupLength = 6;
   std::string ip = "";
   std::vector<std::string> logLevel;
   size_t nodeId = runif(0, std::numeric_limits<uint32_t>::max());
-  std::string otaDir;
   double performance = 2.0;
 
   try {
     po::options_description desc("Allowed options");
     desc.add_options()("help,h", "Produce this help message")(
+        "pixelRowGroupLength,prgl", po::value<uint>(&pixelRowGroupLength),
+        "Lengt of one pixel row group")(
         "nodeid,n", po::value<size_t>(&nodeId),
         "Set nodeID, otherwise set to a random value")(
         "port,p", po::value<size_t>(&port), "The mesh port (default is 5555)")(
@@ -103,8 +103,7 @@ int main(int ac, char* av[]) {
         "logged, this allows you to filter which ones to log. Events currently "
         "logged are: receive, connect, disconnect, change, offset and delay. "
         "This option can be specified multiple times to log multiple types of "
-        "events.")("ota-dir,d", po::value<std::string>(&otaDir),
-                   "Watch given folder for new firmware files.")(
+        "events.")(
         "performance", po::value<double>(&performance)->implicit_value(2.0),
         "Enable performance monitoring. Optional value is frequency (per "
         "second) to send performance monitoring packages. Default is every 2 "
@@ -209,7 +208,7 @@ int main(int ac, char* av[]) {
     } while (mesh.getNodeList().empty());
 
     auto nodeList = mesh.getNodeList();
-    UDP_Server udp_Server(mesh_service, mesh, thing);
+    UDP_Server udp_Server(pixelRowGroupLength, mesh_service, mesh, thing);
     while (true) {
       usleep(1000);  // Tweak this for acceptable cpu usage
       mesh.update();

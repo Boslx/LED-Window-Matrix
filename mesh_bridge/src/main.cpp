@@ -53,6 +53,28 @@ uint32_t runif(uint32_t from, uint32_t to) {
   return distribution(gen);
 }
 
+std::map<uint8_t, uint32_t> getChannelDestMapping(std::string filename) {
+  std::ifstream inFile(filename, std::ios::in);
+  if (!inFile.is_open())
+  {
+    std::cerr << "Can't open the file" << std::endl;
+    throw "Not able to";
+  }
+  std::string lineStr;
+  std::map<uint8_t, uint32_t> channelDestMapping;
+  while (getline(inFile,lineStr))
+  {
+    //  Split string
+    int index = lineStr.find(",");
+    uint8_t channel = std::stoul(lineStr.substr(0, index));
+    uint32_t destId = std::stoul(lineStr.substr(index+1, lineStr.size()-1));
+    //  Save to map
+    channelDestMapping[channel] = destId;
+  }
+
+  return channelDestMapping;
+}
+
 int main(int ac, char* av[]) {
   using namespace painlessmesh;
   size_t port = 5555;
@@ -177,60 +199,7 @@ int main(int ac, char* av[]) {
       plugin::performance::begin(mesh, performance);
     }
 
-    if (vm.count("ota-dir")) {
-      using namespace painlessmesh::plugin;
-      // We probably want to temporary store the file
-      // md5 -> data
-      auto files = std::make_shared<std::map<std::string, std::string>>();
-      // Setup task that monitors the folder for changes
-      auto task =
-          mesh.addTask(TASK_SECOND, TASK_FOREVER, [files, &mesh, otaDir]() {
-            // TODO: Scan for change
-            boost::filesystem::path p(otaDir);
-            boost::filesystem::directory_iterator end_itr;
-            for (boost::filesystem::directory_iterator itr(p); itr != end_itr;
-                 ++itr) {
-              if (!boost::filesystem::is_regular_file(itr->path())) {
-                continue;
-              }
-              auto stat = addFile(files, itr->path(), TASK_SECOND);
-              if (stat.newFile) {
-                // When change, announce it, load it into files
-                ota::Announce announce;
-                announce.md5 = stat.md5;
-                announce.role = stat.role;
-                announce.hardware = stat.hw;
-                announce.noPart =
-                    ceil(((float)files->operator[](stat.md5).length()) /
-                         OTA_PART_SIZE);
-                announce.from = mesh.getNodeId();
-
-                auto announceTask = mesh.addTask(
-                    TASK_MINUTE, 60,
-                    [&mesh, announce]() { mesh.sendPackage(&announce); });
-                // after anounce, remove file from memory
-                announceTask->setOnDisable(
-                    [files, md5 = stat.md5]() { files->erase(md5); });
-              }
-            }
-          });
-      // Setup reply to data requests
-      mesh.onPackage(11, [files, &mesh](protocol::Variant variant) {
-        auto pkg = variant.to<ota::DataRequest>();
-        // cut up the data and send it
-        if (files->count(pkg.md5)) {
-          auto reply =
-              ota::Data::replyTo(pkg,
-                                 files->operator[](pkg.md5).substr(
-                                     OTA_PART_SIZE * pkg.partNo, OTA_PART_SIZE),
-                                 pkg.partNo);
-          mesh.sendPackage(&reply);
-        } else {
-          Log(ERROR, "File not found");
-        }
-        return true;
-      });
-    }
+    auto thing = getChannelDestMapping("ChannelDestMapping.csv");
 
     do {
       usleep(1000);
@@ -240,7 +209,7 @@ int main(int ac, char* av[]) {
     } while (mesh.getNodeList().empty());
 
     auto nodeList = mesh.getNodeList();
-    UDP_Server udp_Server(mesh_service, mesh, nodeList);
+    UDP_Server udp_Server(mesh_service, mesh, thing);
     while (true) {
       usleep(1000);  // Tweak this for acceptable cpu usage
       mesh.update();

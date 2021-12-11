@@ -16,14 +16,14 @@ using boost::asio::ip::udp;
 
 class UDP_Server {
  public:
-  UDP_Server(boost::asio::io_service &io_service, painlessMesh& mesh, std::list<uint32_t>& nodeList);
+  UDP_Server(boost::asio::io_service &io_service, painlessMesh& mesh, std::map<uint8_t, uint32_t>& channelDestMapping);
 
  private:
   udp::socket socket_;
   painlessMesh& mesh_;
   char recv_buffer_[1024];
   udp::endpoint remote_endpoint_;
-  std::list<uint32_t>& nodeList_;
+  std::map<uint8_t, uint32_t>& channelDestMapping_;
   void start_receive();
 };
 

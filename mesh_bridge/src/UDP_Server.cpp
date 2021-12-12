@@ -20,7 +20,7 @@ void UDP_Server::start_receive() {
           std::string totalMessage = std::string(
               &recv_buffer_[0], &recv_buffer_[0] + bytes_transferred);
 
-          unsigned currentDevice = 0;
+          uint currentDevice = 0;
           uint deviceMessageLength =
               pixelRowGroupLength_ * 3;  // for rgb we need 3 byte
           for (unsigned i = 0; i < totalMessage.length();

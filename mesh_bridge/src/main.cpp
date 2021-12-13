@@ -208,6 +208,11 @@ int main(int ac, char* av[]) {
     } while (mesh.getNodeList().empty());
 
     auto nodeList = mesh.getNodeList();
+
+    for(auto device:nodeList){
+      std::cout << device << std::endl;
+    }
+
     UDP_Server udp_Server(pixelRowGroupLength, mesh_service, mesh, thing);
     while (true) {
       usleep(1000);  // Tweak this for acceptable cpu usage

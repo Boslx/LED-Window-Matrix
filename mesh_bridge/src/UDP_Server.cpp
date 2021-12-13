@@ -23,12 +23,12 @@ void UDP_Server::start_receive() {
           uint currentDevice = 0;
           uint deviceMessageLength =
               pixelRowGroupLength_ * 3;  // for rgb we need 3 byte
-          for (unsigned i = 0; i < totalMessage.length();
+          for (unsigned i = 4; i < totalMessage.length();
                i += deviceMessageLength) {
             auto targetDevice = channelDestMapping_[currentDevice];
             auto deviceMessage = totalMessage.substr(i, deviceMessageLength);
 
-            mesh_.sendSingle(targetDevice, deviceMessage);
+            mesh_.sendSingle(targetDevice, macaron::Base64::Encode(deviceMessage));
             ++currentDevice;
           }
         } else

@@ -10,6 +10,7 @@
 #include "painlessmesh/mesh.hpp"
 #include "painlessMesh.h"
 #include "painlessMeshConnection.h"
+#include "Base64.h"
 #include "plugin/performance.hpp"
 
 using boost::asio::ip::udp;

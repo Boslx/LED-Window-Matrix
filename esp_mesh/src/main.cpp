@@ -39,6 +39,12 @@ void receivedCallback( uint32_t from, String &msg ) {
   Serial.println(outputLength);
  
   Serial.printf("%.*s", outputLength, decoded);
+
+  for(int i = 0; i < outputLength; i += 3) {
+    unsigned char r = decoded[i];
+    unsigned char g = decoded[i+1];
+    unsigned char b = decoded[i+2];
+    }
 }
 
 void newConnectionCallback(uint32_t nodeId) {

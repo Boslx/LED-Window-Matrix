@@ -18,23 +18,12 @@ using namespace std;
 #define   DATA_PIN        2
 #define   BRIGTHNESS      128
 
-#define STR(x) 
-
 Scheduler userScheduler; // to control your personal task
 painlessMesh mesh;
 CRGB leds[NUM_LEDS];
 
 // User stub
 void sendMessage() ; // Prototype so PlatformIO doesn't complain
-
-Task taskSendMessage( TASK_SECOND * 500 , TASK_FOREVER, &sendMessage );
-
-void sendMessage() {
-  String msg = "Hi from ESP2";
-  msg += mesh.getNodeId();
-  mesh.sendBroadcast( msg );
-  taskSendMessage.setInterval( random( TASK_SECOND * 1, TASK_SECOND * 5 ));
-}
 
 // Needed for painless library
 void receivedCallback( uint32_t from, String &msg ) {
@@ -53,11 +42,11 @@ void receivedCallback( uint32_t from, String &msg ) {
   if(outputLength == 1){
     FastLED.setBrightness(decoded[0]);
     mesh.sendSingle(from, "Set brightness to " + (uint8_t) decoded[0]);
+    return;
   }
 
   if(outputLength != NUM_LEDS*3){
-    // Fix Me :)
-    //mesh.sendSingle(from, "Invalid message length, expected " + STR(NUM_LEDS_STR) + " got " + outputLength);
+    mesh.sendSingle(from, "Invalid message length, expected 6, got " + outputLength);
     return;
   }
 
@@ -65,7 +54,9 @@ void receivedCallback( uint32_t from, String &msg ) {
   for(int i = 0; i < outputLength; i += 3) {
     leds[index].setRGB(decoded[i], decoded[i + 1], decoded[i + 2]);
     ++index;
-    }
+  }
+  
+  FastLED.show();
 }
 
 void newConnectionCallback(uint32_t nodeId) {
@@ -91,11 +82,6 @@ void setup() {
   mesh.onNewConnection(&newConnectionCallback);
   mesh.onChangedConnections(&changedConnectionCallback);
   mesh.onNodeTimeAdjusted(&nodeTimeAdjustedCallback);
-
-  mesh.initOTAReceive("otareceiver");
-
-  userScheduler.addTask( taskSendMessage );
-  //taskSendMessage.enable();
 
   FastLED.addLeds<WS2811, DATA_PIN, GRB>(leds, NUM_LEDS);
   FastLED.setBrightness(BRIGTHNESS);

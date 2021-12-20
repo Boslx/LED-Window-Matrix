@@ -2,10 +2,10 @@
 #include <iostream>
 #include <cstring>
 #include <FastLED.h>
-extern "C" {
-  #include "crypto/base64.h"
-}
-
+//extern "C" {
+//  #include "crypto/base64.h"
+//}
+#include "mbedtls/base64.h"
 using namespace std;
 
 // Mesh
@@ -21,17 +21,19 @@ using namespace std;
 Scheduler userScheduler; // to control your personal task
 painlessMesh mesh;
 CRGB leds[NUM_LEDS];
-String lastMessage = "";
+String lastMessage;
 
 void setLEDs() {
-  if(lastMessage.isEmpty()){
+  if(lastMessage){
     return;
   }
 
-  const char* toDecode = lastMessage.c_str();
+  //unsigned char* toDecode = &lastMessage.c_str();
+
 
   size_t outputLength;
-  unsigned char* decoded = base64_decode((const unsigned char*) toDecode, strlen(toDecode), &outputLength);
+  unsigned char decoded[64];
+  mbedtls_base64_decode(decoded, 64, &outputLength, (unsigned char*)lastMessage.c_str(), outputLength);
 
   if(outputLength == 1){
     FastLED.setBrightness(decoded[0]);
@@ -45,6 +47,7 @@ void setLEDs() {
   }
 
   uint8_t index = 0;
+
   for(int i = 0; i < outputLength; i += 3) {
     leds[index].setRGB(decoded[i], decoded[i + 1], decoded[i + 2]);
     ++index;
@@ -53,13 +56,13 @@ void setLEDs() {
   FastLED.show();
 }
 
-Task taskSetLEDs(TASK_SECOND * 1, TASK_FOREVER, &setLEDs);
+Task taskSetLEDs(TASK_MILLISECOND * 10, TASK_FOREVER, &setLEDs);
 
 // User stub
 void sendMessage() ; // Prototype so PlatformIO doesn't complain
 
 // Needed for painless library
-void receivedCallback( uint32_t from, String &msg ) {
+void receivedCallback( uint32_t from, String msg ) {
   // TODO here output
   lastMessage = msg;
 }
@@ -79,12 +82,12 @@ void nodeTimeAdjustedCallback(int32_t offset) {
 void setup() {
   Serial.begin(115200);
 
-  FastLED.addLeds<WS2812B, DATA_PIN, GRB>(leds, NUM_LEDS);
+  FastLED.addLeds<WS2812B, DATA_PIN, BRG>(leds, NUM_LEDS);
   FastLED.setBrightness(BRIGTHNESS);
 
   // Show turn on animation
   for(int i = 0; i < NUM_LEDS; i++){
-    leds[i] = CRGB::Fuchsia;
+    leds[i].setRGB(102, 103, 171); //color of the year 2022
   }
   FastLED.show();
   delay(1000);

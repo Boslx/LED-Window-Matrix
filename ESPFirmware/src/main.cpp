@@ -2,104 +2,129 @@
 #include <iostream>
 #include <cstring>
 #include <FastLED.h>
-//extern "C" {
-//  #include "crypto/base64.h"
-//}
-#include "mbedtls/base64.h"
+extern "C"
+{
+#include "crypto/base64.h"
+}
+
 using namespace std;
 
 // Mesh
-#define   MESH_PREFIX     "SuperHotspot 2"
-#define   MESH_PASSWORD   "somethingSneaky"
-#define   MESH_PORT       5555
+#define MESH_PREFIX "SuperHotspot 2"
+#define MESH_PASSWORD "somethingSneaky"
+#define MESH_PORT 5555
 
 // LEDs
-#define   NUM_LEDS        6
-#define   DATA_PIN        2
-#define   BRIGTHNESS      128 // On startup
+#define NUM_LEDS 6
+#define BUFFER_FRAMES 25
+#define DATA_PIN 13
+#define BRIGTHNESS 64 // On startup
+#define MESSAGE_LENGTH (NUM_LEDS * BUFFER_FRAMES * 3)
 
 Scheduler userScheduler; // to control your personal task
 painlessMesh mesh;
 CRGB leds[NUM_LEDS];
-String lastMessage;
 
-void setLEDs() {
-  if(lastMessage){
+uint frameBufferPosition;
+unsigned char *lastMessage;
+bool readyToSetLeds = false;
+
+void setLEDs()
+{
+
+  if (!readyToSetLeds || frameBufferPosition >= MESSAGE_LENGTH)
+  {
     return;
   }
 
-  //unsigned char* toDecode = &lastMessage.c_str();
-
-
-  size_t outputLength;
-  unsigned char decoded[64];
-  mbedtls_base64_decode(decoded, 64, &outputLength, (unsigned char*)lastMessage.c_str(), outputLength);
-
-  if(outputLength == 1){
-    FastLED.setBrightness(decoded[0]);
-    //mesh.sendSingle(from, "Set brightness to " + (uint8_t) decoded[0]);
-    return;
+  for (uint i = 0; i < NUM_LEDS; ++i)
+  {
+    leds[i].setRGB(
+        lastMessage[frameBufferPosition],
+        lastMessage[frameBufferPosition + 1],
+        lastMessage[frameBufferPosition + 2]);
+    frameBufferPosition += 3;
   }
 
-  if(outputLength != NUM_LEDS*3){
-    //mesh.sendSingle(from, "Invalid message length, expected 18, got " + outputLength);
-    return;
-  }
-
-  uint8_t index = 0;
-
-  for(int i = 0; i < outputLength; i += 3) {
-    leds[index].setRGB(decoded[i], decoded[i + 1], decoded[i + 2]);
-    ++index;
-  }
-  
   FastLED.show();
 }
 
-Task taskSetLEDs(TASK_MILLISECOND * 10, TASK_FOREVER, &setLEDs);
+Task taskSetLEDs(TASK_MILLISECOND * 40, TASK_FOREVER, &setLEDs);
 
 // User stub
-void sendMessage() ; // Prototype so PlatformIO doesn't complain
+void sendMessage(); // Prototype so PlatformIO doesn't complain
 
 // Needed for painless library
-void receivedCallback( uint32_t from, String msg ) {
-  // TODO here output
-  lastMessage = msg;
+void receivedCallback(uint32_t from, String msg)
+{
+  if (lastMessage != nullptr)
+  {
+    delete[] lastMessage;
+  }
+
+  const char *toDecode = msg.c_str();
+  size_t outputLength;
+  lastMessage = base64_decode((const unsigned char *)toDecode, strlen(toDecode), &outputLength);
+
+  // Set LEDs
+  if (outputLength == MESSAGE_LENGTH)
+  {
+    frameBufferPosition = 0;
+    readyToSetLeds = true;
+  }
+
+  // Set Brightness
+  if (outputLength == 1)
+  {
+    FastLED.setBrightness(lastMessage[0]);
+  }
 }
 
-void newConnectionCallback(uint32_t nodeId) {
-    Serial.printf("--> startHere: New Connection, nodeId = %u\n", nodeId);
+void newConnectionCallback(uint32_t nodeId)
+{
+  Serial.printf("--> startHere: New Connection, nodeId = %u\n", nodeId);
 }
 
-void changedConnectionCallback() {
-  //Serial.printf("Changed connections\n");
+void changedConnectionCallback()
+{
+  Serial.printf("Changed connections\n");
 }
 
-void nodeTimeAdjustedCallback(int32_t offset) {
-    Serial.printf("Adjusted time %u. Offset = %d\n", mesh.getNodeTime(),offset);
+void nodeTimeAdjustedCallback(int32_t offset)
+{
+  Serial.printf("Adjusted time %u. Offset = %d\n", mesh.getNodeTime(), offset);
 }
 
-void setup() {
+void initSequenze()
+{
+  for (int i = 0; i < NUM_LEDS; i++)
+  {
+    leds[i].setRGB(102, 103, 171); //color of the year 2022
+    FastLED.show();
+    delay(50);
+  }
+  delay(800);
+  for (int i = 0; i < NUM_LEDS; i++)
+  {
+    leds[i] = CRGB::Black;
+    FastLED.show();
+    delay(50);
+  }
+}
+
+void setup()
+{
   Serial.begin(115200);
 
-  FastLED.addLeds<WS2812B, DATA_PIN, BRG>(leds, NUM_LEDS);
+  FastLED.addLeds<WS2812, DATA_PIN, BRG>(leds, NUM_LEDS);
   FastLED.setBrightness(BRIGTHNESS);
 
-  // Show turn on animation
-  for(int i = 0; i < NUM_LEDS; i++){
-    leds[i].setRGB(102, 103, 171); //color of the year 2022
-  }
-  FastLED.show();
-  delay(1000);
-  for(int i = 0; i < NUM_LEDS; i++){
-    leds[i] = CRGB::Black;
-  }
-  FastLED.show();
+  initSequenze();
 
   //mesh.setDebugMsgTypes( ERROR | MESH_STATUS | CONNECTION | SYNC | COMMUNICATION | GENERAL | MSG_TYPES | REMOTE ); // all types on
-  mesh.setDebugMsgTypes( ERROR | STARTUP );  // set before init() so that you can see startup messages
+  mesh.setDebugMsgTypes(ERROR | STARTUP); // set before init() so that you can see startup messages
 
-  mesh.init( MESH_PREFIX, MESH_PASSWORD, &userScheduler, MESH_PORT );
+  mesh.init(MESH_PREFIX, MESH_PASSWORD, &userScheduler, MESH_PORT);
   mesh.onReceive(&receivedCallback);
   mesh.onNewConnection(&newConnectionCallback);
   mesh.onChangedConnections(&changedConnectionCallback);
@@ -107,10 +132,10 @@ void setup() {
 
   userScheduler.addTask(taskSetLEDs);
   taskSetLEDs.enable();
-
 }
 
-void loop() {
+void loop()
+{
   // it will run the user scheduler as well
   mesh.update();
 }

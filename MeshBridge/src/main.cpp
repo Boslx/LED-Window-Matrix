@@ -200,12 +200,14 @@ int main(int ac, char* av[]) {
 
     auto thing = getChannelDestMapping("ChannelDestMapping.csv");
 
+    std::cout << "Searching for nodes..." << std::endl;
     do {
       usleep(1000);
       mesh.update();
       mesh_service.poll();
-      std::cout << "Waiting for nodes..." << std::endl;
     } while (mesh.getNodeList().empty());
+
+    std::cout << "Found the following nodes:" << std::endl;
 
     auto nodeList = mesh.getNodeList();
 
@@ -213,9 +215,11 @@ int main(int ac, char* av[]) {
       std::cout << device << std::endl;
     }
 
+    std::cout << "Bridge started!" << std::endl;
+
     UDP_Server udp_Server(pixelRowGroupLength, mesh_service, mesh, thing);
     while (true) {
-      usleep(1000);  // Tweak this for acceptable cpu usage
+      usleep(100);  // Tweak this for acceptable cpu usage
       mesh.update();
       mesh_service.poll();
     }

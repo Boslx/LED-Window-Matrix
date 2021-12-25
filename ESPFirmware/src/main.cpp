@@ -2,6 +2,8 @@
 #include <iostream>
 #include <cstring>
 #include <FastLED.h>
+#include "BufferLedSet.h"
+#include <CircularBuffer.h>
 extern "C"
 {
 #include "crypto/base64.h"
@@ -19,37 +21,24 @@ using namespace std;
 #define BUFFER_FRAMES 25
 #define DATA_PIN 13
 #define BRIGTHNESS 64 // On startup
-#define MESSAGE_LENGTH (NUM_LEDS * BUFFER_FRAMES * 3)
 
 Scheduler userScheduler; // to control your personal task
 painlessMesh mesh;
 CRGB leds[NUM_LEDS];
 
-uint frameBufferPosition;
-unsigned char *lastMessage;
-bool readyToSetLeds = false;
+CircularBuffer<BufferLedSet *, 4> frameBuffers;
 
 void setLEDs()
 {
-
-  if (!readyToSetLeds || frameBufferPosition >= MESSAGE_LENGTH)
+  while (!(frameBuffers.isEmpty() || frameBuffers.first()->setLedsAtTime(leds, NUM_LEDS, mesh.getNodeTime())))
   {
-    return;
-  }
-
-  for (uint i = 0; i < NUM_LEDS; ++i)
-  {
-    leds[i].setRGB(
-        lastMessage[frameBufferPosition],
-        lastMessage[frameBufferPosition + 1],
-        lastMessage[frameBufferPosition + 2]);
-    frameBufferPosition += 3;
+    delete frameBuffers.shift();
   }
 
   FastLED.show();
 }
 
-Task taskSetLEDs(TASK_MILLISECOND * 40, TASK_FOREVER, &setLEDs);
+Task taskSetLEDs(TASK_MILLISECOND * 30, TASK_FOREVER, &setLEDs);
 
 // User stub
 void sendMessage(); // Prototype so PlatformIO doesn't complain
@@ -57,27 +46,7 @@ void sendMessage(); // Prototype so PlatformIO doesn't complain
 // Needed for painless library
 void receivedCallback(uint32_t from, String msg)
 {
-  if (lastMessage != nullptr)
-  {
-    delete[] lastMessage;
-  }
-
-  const char *toDecode = msg.c_str();
-  size_t outputLength;
-  lastMessage = base64_decode((const unsigned char *)toDecode, strlen(toDecode), &outputLength);
-
-  // Set LEDs
-  if (outputLength == MESSAGE_LENGTH)
-  {
-    frameBufferPosition = 0;
-    readyToSetLeds = true;
-  }
-
-  // Set Brightness
-  if (outputLength == 1)
-  {
-    FastLED.setBrightness(lastMessage[0]);
-  }
+  frameBuffers.push(new BufferLedSet(msg));
 }
 
 void newConnectionCallback(uint32_t nodeId)
@@ -97,18 +66,22 @@ void nodeTimeAdjustedCallback(int32_t offset)
 
 void initSequenze()
 {
-  for (int i = 0; i < NUM_LEDS; i++)
+  vector<uint32_t> colors{
+      0xFF0000, // Red
+      0x00FF00, // Green
+      0x0000FF, // Blue
+      0x6667AB, // Color of the year 2022
+      0x000000
+  };
+
+  for (auto color : colors)
   {
-    leds[i].setRGB(102, 103, 171); //color of the year 2022
-    FastLED.show();
-    delay(50);
-  }
-  delay(800);
-  for (int i = 0; i < NUM_LEDS; i++)
-  {
-    leds[i] = CRGB::Black;
-    FastLED.show();
-    delay(50);
+    for (int i = 0; i < NUM_LEDS; i++)
+    {
+      leds[i].setColorCode(color);
+      FastLED.show();
+    }
+    delay(500);
   }
 }
 

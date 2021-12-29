@@ -27,6 +27,9 @@ class UDP_Server {
   udp::endpoint remote_endpoint_;
   std::map<uint8_t, uint32_t>& channelDestMapping_;
   void start_receive();
+  std::string getTimestampAsString(uint32_t timestamp) const;
+  std::vector<std::string> splitIntoFrames(const std::string& totalMessage,
+                                      unsigned int lengthSingleFrame) const;
 };
 
 #endif  // PAINLESSMESHBOOST_UDP_SERVER_H

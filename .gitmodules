@@ -1,0 +1,6 @@
+[submodule "PixelBridge"]
+	path = PixelBridge
+	url = https://github.com/Boslx/PixelBridge
+[submodule "Utils/Glediator3"]
+	path = Utils/Glediator3
+	url = https://github.com/mrfaptastic/Glediator3

@@ -12,13 +12,13 @@ extern "C"
 using namespace std;
 
 // Mesh
-#define MESH_PREFIX "SuperHotspot 2"
-#define MESH_PASSWORD "somethingSneaky"
+#define MESH_PREFIX "LED-Window-Matrix"
+#define MESH_PASSWORD "Ea2eNoh2aixi"
 #define MESH_PORT 5555
+#define MESH_HIDDEN 0 // TODO: Set me to 1 in production
 
 // LEDs
 #define NUM_LEDS 6
-#define BUFFER_FRAMES 25
 #define DATA_PIN 13
 #define BRIGTHNESS 64 // On startup
 
@@ -43,10 +43,37 @@ Task taskSetLEDs(TASK_MILLISECOND * 30, TASK_FOREVER, &setLEDs);
 // User stub
 void sendMessage(); // Prototype so PlatformIO doesn't complain
 
+
+void handleControllMessage(String& msg){
+  // Inside the brackets, 30 is the capacity of the memory pool in bytes.
+  // Don't forget to change this value to match your JSON document.
+  // Use https://arduinojson.org/v6/assistant to compute the capacity.
+  StaticJsonDocument<30> doc;
+  // Deserialize the JSON document
+  DeserializationError error = deserializeJson(doc, msg);
+
+  if(error){
+    Serial.printf("Deserializing the controll message failed: %s\n", error.c_str());
+    return;
+  }
+
+  // Set Brightness according to controll message
+  FastLED.setBrightness(doc["brightness"]);
+}
+
 // Needed for painless library
 void receivedCallback(uint32_t from, String msg)
 {
-  frameBuffers.push(new BufferLedSet(msg));
+  if (msg[0] == '{')
+  {
+    // A JSON
+    handleControllMessage(msg);
+  }
+  else
+  {
+    // Probably Base64 encoded
+    frameBuffers.push(new BufferLedSet(msg));
+  }
 }
 
 void newConnectionCallback(uint32_t nodeId)
@@ -71,8 +98,7 @@ void initSequenze()
       0x00FF00, // Green
       0x0000FF, // Blue
       0x6667AB, // Color of the year 2022
-      0x000000
-  };
+      0x000000};
 
   for (auto color : colors)
   {
@@ -89,7 +115,7 @@ void setup()
 {
   Serial.begin(115200);
 
-  FastLED.addLeds<WS2812, DATA_PIN, BRG>(leds, NUM_LEDS);
+  FastLED.addLeds<WS2812, DATA_PIN, BRG>(leds, NUM_LEDS).setCorrection(TypicalSMD5050);
   FastLED.setBrightness(BRIGTHNESS);
 
   initSequenze();
@@ -97,7 +123,7 @@ void setup()
   //mesh.setDebugMsgTypes( ERROR | MESH_STATUS | CONNECTION | SYNC | COMMUNICATION | GENERAL | MSG_TYPES | REMOTE ); // all types on
   mesh.setDebugMsgTypes(ERROR | STARTUP); // set before init() so that you can see startup messages
 
-  mesh.init(MESH_PREFIX, MESH_PASSWORD, &userScheduler, MESH_PORT);
+  mesh.init(MESH_PREFIX, MESH_PASSWORD, &userScheduler, MESH_PORT, WIFI_AP_STA, 1U, MESH_HIDDEN);
   mesh.onReceive(&receivedCallback);
   mesh.onNewConnection(&newConnectionCallback);
   mesh.onChangedConnections(&changedConnectionCallback);

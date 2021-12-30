@@ -1,8 +1,8 @@
-# Naschkatzen_Matrix Embedded Systems Project
+# LED-Window-Matrix
 ## Overview
-The main objective is the development of a wireless controlled lighting matrix for the A-building of the Sontheim campus in Heilbronn, Germany. In addition, this project aims to simplify the process of creating such a matrix by being coded modular and adaptable. Below is a simplified overview of the backend stack:
+The main objective is the development of a wireless controlled lighting matrix for the A-building of the Sontheim campus in Heilbronn, Germany. In addition, this project aims to simplify the process of creating building sized led matrix by being coded modular and adaptable. Below is a simplified overview of the backend stack:
 
-![Overview](Images/overview.jpg)
+![Overview](Images/Overview.svg)
 
 We are using the ![PixelBridge](https://github.com/LeoDJ/PixelBridge) as our input. Here a webinterface or simple artnet packages can be used to control the matrix. The PixelBridge is then providing the MatrixBridge with ![Open Pixel Control](http://openpixelcontrol.org/) packages. This Bridge is then using ![painlessMesh](https://gitlab.com/painlessMesh/painlessMesh) to connected embedded devices, in our case ESP32s.
 

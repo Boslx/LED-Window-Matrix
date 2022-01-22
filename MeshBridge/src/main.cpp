@@ -80,6 +80,7 @@ int main(int ac, char* av[]) {
   std::string ip = "";
   std::vector<std::string> logLevel;
   size_t nodeId = runif(0, std::numeric_limits<uint32_t>::max());
+  int brightness = 64;
   double performance = 2.0;
 
   try {
@@ -107,7 +108,9 @@ int main(int ac, char* av[]) {
         "performance", po::value<double>(&performance)->implicit_value(2.0),
         "Enable performance monitoring. Optional value is frequency (per "
         "second) to send performance monitoring packages. Default is every 2 "
-        "seconds.");
+        "seconds.")(
+        "brightness", po::value<int>(&brightness)->implicit_value(64),
+        "Brightness of the mesh");
 
     po::variables_map vm;
     po::store(po::parse_command_line(ac, av, desc), vm);
@@ -211,8 +214,9 @@ int main(int ac, char* av[]) {
 
     auto nodeList = mesh.getNodeList();
 
-    for(auto device:nodeList){
+    for (auto device : nodeList) {
       std::cout << device << std::endl;
+      mesh.sendSingle(device, "{brightness: " +  std::to_string(brightness) + "}");
     }
 
     std::cout << "Bridge started!" << std::endl;

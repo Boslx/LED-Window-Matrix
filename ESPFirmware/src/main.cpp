@@ -19,7 +19,7 @@ using namespace std;
 
 // LEDs
 #define NUM_LEDS 6
-#define DATA_PIN 13
+#define DATA_PIN 12
 #define BRIGTHNESS 64 // On startup
 
 Scheduler userScheduler; // to control your personal task
@@ -45,10 +45,10 @@ void sendMessage(); // Prototype so PlatformIO doesn't complain
 
 
 void handleControllMessage(String& msg){
-  // Inside the brackets, 30 is the capacity of the memory pool in bytes.
+  // Inside the brackets, 20 is the capacity of the memory pool in bytes.
   // Don't forget to change this value to match your JSON document.
   // Use https://arduinojson.org/v6/assistant to compute the capacity.
-  StaticJsonDocument<30> doc;
+  StaticJsonDocument<20> doc;
   // Deserialize the JSON document
   DeserializationError error = deserializeJson(doc, msg);
 
@@ -115,7 +115,7 @@ void setup()
 {
   Serial.begin(115200);
 
-  FastLED.addLeds<WS2812, DATA_PIN, BRG>(leds, NUM_LEDS).setCorrection(TypicalSMD5050);
+  FastLED.addLeds<WS2811, DATA_PIN, RBG>(leds, NUM_LEDS).setCorrection(TypicalSMD5050);
   FastLED.setBrightness(BRIGTHNESS);
 
   initSequenze();
@@ -125,9 +125,9 @@ void setup()
 
   mesh.init(MESH_PREFIX, MESH_PASSWORD, &userScheduler, MESH_PORT, WIFI_AP_STA, 1U, MESH_HIDDEN);
   mesh.onReceive(&receivedCallback);
-  mesh.onNewConnection(&newConnectionCallback);
-  mesh.onChangedConnections(&changedConnectionCallback);
-  mesh.onNodeTimeAdjusted(&nodeTimeAdjustedCallback);
+  //mesh.onNewConnection(&newConnectionCallback);
+  //mesh.onChangedConnections(&changedConnectionCallback);
+  //mesh.onNodeTimeAdjusted(&nodeTimeAdjustedCallback);
 
   userScheduler.addTask(taskSetLEDs);
   taskSetLEDs.enable();

@@ -34,8 +34,12 @@ uint32_t BufferLedSet::getFrameStartTime()
 }
 
 bool BufferLedSet::setLedsAtTime(CRGB* leds, uint8_t size, const uint32_t& time){
-    int difference = time - startTimestamp;
-    if(difference<0){
+    long difference = time - startTimestamp;
+    if(difference<-6000000){
+        // The startTimestamp is more than 6 Secounds in the future. Remove the timestamp from the buffer
+        return false;
+    }
+    else if(difference<0){
         // The startTimestamp is in the future. Just and do nothing and wait
         return true;
     } else if(difference>BufferLengthMicrosecounds){

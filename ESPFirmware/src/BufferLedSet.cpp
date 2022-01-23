@@ -16,7 +16,9 @@ BufferLedSet::BufferLedSet(String& base64EncodedData)
 
 BufferLedSet::~BufferLedSet() 
 {
-    delete[] BufferLedSet::data;
+    // Requiered because base64_decode uses os_malloc
+    // https://github.com/espressif/esp-idf/blob/aaf12390eb14b95589acd98db5c268a2e56bb67e/components/wpa_supplicant/src/wpa2/utils/base64.c#L119
+    free(BufferLedSet::data);
 }
 
 uint32_t BufferLedSet::getFrameStartTime() 

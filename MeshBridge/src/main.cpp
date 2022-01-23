@@ -216,7 +216,7 @@ int main(int ac, char* av[]) {
 
     for (auto device : nodeList) {
       std::cout << device << std::endl;
-      mesh.sendSingle(device, "{brightness: " +  std::to_string(brightness) + "}");
+      //mesh.sendSingle(device, "{brightness: " +  std::to_string(brightness) + "}");
     }
 
     std::cout << "Bridge started!" << std::endl;

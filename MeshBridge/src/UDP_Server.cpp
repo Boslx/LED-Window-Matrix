@@ -41,10 +41,15 @@ void UDP_Server::start_receive() {
             }
 
             auto targetDevice = channelDestMapping_[currentDevice];
-            mesh_.sendSingle(targetDevice,
-                             macaron::Base64::Encode(nodeMessage));
 
-            std::cout << "Sending message to " << targetDevice << " with length " << nodeMessage.length() << std::endl;
+            if (targetDevice != 0) {
+              mesh_.sendSingle(targetDevice,
+                               macaron::Base64::Encode(nodeMessage));
+
+              std::cout << "Sending message to " << targetDevice
+                        << " with length " << nodeMessage.length() << std::endl;
+            }
+
             ++currentDevice;
           }
         } else

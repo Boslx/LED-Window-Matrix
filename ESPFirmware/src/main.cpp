@@ -19,7 +19,7 @@ using namespace std;
 
 // LEDs
 #define NUM_LEDS 6
-#define DATA_PIN 12
+#define DATA_PIN 21
 #define BRIGTHNESS 64 // On startup
 
 Scheduler userScheduler; // to control your personal task
@@ -115,7 +115,7 @@ void setup()
 {
   Serial.begin(115200);
 
-  FastLED.addLeds<WS2811, DATA_PIN, RBG>(leds, NUM_LEDS).setCorrection(TypicalSMD5050);
+  FastLED.addLeds<WS2811, DATA_PIN, BGR>(leds, NUM_LEDS).setCorrection(TypicalSMD5050);
   FastLED.setBrightness(BRIGTHNESS);
 
   initSequenze();
